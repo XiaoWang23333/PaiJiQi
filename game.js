@@ -268,6 +268,9 @@ function selectCard(card) {
   if (state.busy) return;
   state.selectedCard = card;
   state.previewSide = null;
+  if (window.matchMedia('(hover: none), (pointer: coarse)').matches) {
+    document.activeElement?.blur();
+  }
   renderHand();
   updateInteractionPhase();
   drawScene();
