@@ -1,0 +1,10 @@
+{
+  "name": "pat-liang-xia-demo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "check": "node --check game.js && node --check server.js"
+  }
+}

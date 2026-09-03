@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>拍两下就好 · 单局 Demo</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">祖传手艺 · 今日营业</p>
+        <h1>拍两下就好</h1>
+      </div>
+      <button id="restartButton" class="icon-button" type="button" aria-label="重开本局">重开</button>
+    </header>
+
+    <main>
+      <section class="progress-strip" aria-label="维修进度">
+        <span class="progress-step active"><b>01</b> 收音机</span>
+        <i></i>
+        <span class="progress-step"><b>02</b> 洗衣机</span>
+        <i></i>
+        <span class="progress-step"><b>03</b> 售货机</span>
+      </section>
+
+      <section class="machine-card">
+        <div class="machine-heading">
+          <div>
+            <span id="machineTag" class="machine-tag">新手订单</span>
+            <h2 id="machineName">老式收音机</h2>
+          </div>
+          <div class="turn-counter"><span>回合</span><strong id="turnText">1 / 6</strong></div>
+        </div>
+
+        <div class="meters">
+          <div class="meter-block">
+            <div class="meter-label"><span>机体耐久</span><strong id="durabilityText">35 / 35</strong></div>
+            <div class="meter durability"><i id="durabilityBar"></i></div>
+          </div>
+          <div class="meter-block">
+            <div class="meter-label"><span>修复进度</span><strong id="repairText">0%</strong></div>
+            <div class="meter repair"><i id="repairBar"></i></div>
+          </div>
+        </div>
+
+        <div class="intent" id="intentPanel">
+          <span class="intent-mark">!</span>
+          <div><small>机器意图</small><strong id="intentText">第 2 回合释放静电</strong></div>
+        </div>
+
+        <div class="stage-wrap">
+          <button class="side-button top" data-side="top" type="button"><span>从上拍</span><i>↓</i></button>
+          <button class="side-button left" data-side="left" type="button"><span>从左拍</span><i>→</i></button>
+          <canvas id="machineCanvas" width="720" height="480" aria-label="机器内部零件视图"></canvas>
+          <button class="side-button right" data-side="right" type="button"><i>←</i><span>从右拍</span></button>
+          <button class="side-button bottom" data-side="bottom" type="button"><i>↑</i><span>从下拍</span></button>
+          <div id="impactFlash" class="impact-flash"></div>
+        </div>
+
+        <div id="statusLine" class="status-line">
+          <span class="status-dot"></span>
+          <p>先选一张掌法，再选择拍击方向</p>
+        </div>
+      </section>
+
+      <section class="hand-section">
+        <div class="section-heading">
+          <div><span>本回合手牌</span><small>选择 1 张使用</small></div>
+          <span id="deckCount" class="deck-count">牌库 5</span>
+        </div>
+        <div id="hand" class="hand" aria-live="polite"></div>
+      </section>
+
+      <section class="workbench-note">
+        <span>维修提示</span>
+        <p id="hintText">零件进入接口捕获区后会完整归位并锁定；未进入捕获区则保持自然落点。</p>
+      </section>
+    </main>
+  </div>
+
+  <div id="introModal" class="modal visible" role="dialog" aria-modal="true">
+    <div class="modal-card intro-card">
+      <span class="modal-kicker">单局体验 Demo</span>
+      <h2>不用拆，拍两下就好</h2>
+      <p>看清内部零件，选择掌法与方向。在机器彻底报废前，把它拍回工作状态。</p>
+      <div class="rules">
+        <div><b>1</b><span>选掌法</span></div>
+        <div><b>2</b><span>选方向</span></div>
+        <div><b>3</b><span>看它归位</span></div>
+      </div>
+      <button id="startButton" class="primary-button" type="button">开始营业</button>
+    </div>
+  </div>
+
+  <div id="rewardModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-card reward-card">
+      <span class="modal-kicker">维修奖励</span>
+      <h2>老师傅，选一样带走</h2>
+      <p>强化只在本局内生效。</p>
+      <div id="rewardOptions" class="reward-options"></div>
+    </div>
+  </div>
+
+  <div id="resultModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-card result-card">
+      <span id="resultKicker" class="modal-kicker">今日结算</span>
+      <div id="resultSeal" class="result-seal">修</div>
+      <h2 id="resultTitle">老师傅手艺</h2>
+      <p id="resultDescription">三台机器全部恢复运转。</p>
+      <div class="result-stats">
+        <div><span>修好机器</span><strong id="resultMachines">3</strong></div>
+        <div><span>总拍击</span><strong id="resultSlaps">12</strong></div>
+        <div><span>归位零件</span><strong id="resultParts">14</strong></div>
+      </div>
+      <button id="playAgainButton" class="primary-button" type="button">再开一局</button>
+    </div>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>
