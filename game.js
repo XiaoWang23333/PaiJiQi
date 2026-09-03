@@ -130,7 +130,7 @@ const state = {
   stallTurns: 0,
   previewSide: null,
   hoveredPart: null,
-  selectedPart: null,
+  hiddenTargetParts: new Set(),
   started: false
 };
 
@@ -158,7 +158,7 @@ function resetRun() {
   state.stallTurns = 0;
   state.previewSide = null;
   state.hoveredPart = null;
-  state.selectedPart = null;
+  state.hiddenTargetParts = new Set();
   els.rewardModal.classList.remove('visible');
   els.resultModal.classList.remove('visible');
   loadMachine(0);
@@ -180,7 +180,7 @@ function loadMachine(index) {
   state.stallTurns = 0;
   state.previewSide = null;
   state.hoveredPart = null;
-  state.selectedPart = null;
+  state.hiddenTargetParts = new Set();
   els.sideButtons.forEach(button => {
     button.disabled = false;
     button.classList.remove('ready');
@@ -974,7 +974,7 @@ function drawVendingStructure(layer) {
 }
 
 function drawGuides() {
-  state.parts.filter(p => p.guide && !p.active).forEach(p => {
+  state.parts.filter(p => p.guide && isTargetVisible(p)).forEach(p => {
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -1027,15 +1027,17 @@ function drawImpactPreview(side, card) {
 }
 
 function focusedPart() {
-  return state.hoveredPart || state.selectedPart;
+  return state.hoveredPart;
+}
+
+function isTargetVisible(p) {
+  return !p.active && !state.hiddenTargetParts.has(p);
 }
 
 function drawTargets() {
-  const focused = focusedPart();
-  const capturing = state.parts.filter(p => p.connection === 'capturing');
-  state.parts.forEach(drawSocket);
-  capturing.forEach(drawTargetIndicator);
-  if (focused && focused.connection !== 'capturing') drawTargetIndicator(focused);
+  const visibleParts = state.parts.filter(isTargetVisible);
+  visibleParts.forEach(drawSocket);
+  visibleParts.forEach(drawTargetIndicator);
 }
 
 function drawTargetIndicator(p) {
@@ -1488,14 +1490,22 @@ function partAtPoint(point) {
 }
 
 function showPartTarget(partItem, pinned = false) {
-  if (pinned) state.selectedPart = state.selectedPart === partItem ? null : partItem;
-  else state.hoveredPart = partItem;
-  drawScene();
-  const focused = focusedPart();
-  if (focused) {
-    const stateText = focused.active ? '已经完整归位' : '目标位置已用黄色接口和引导线标出';
-    setStatus(`${focused.name}：${stateText}`, focused.active ? 'good' : 'neutral');
+  if (pinned) {
+    if (partItem.active) {
+      setStatus(`${partItem.name}已经完整归位，无需显示目标`, 'good');
+      return;
+    }
+    if (state.hiddenTargetParts.has(partItem)) {
+      state.hiddenTargetParts.delete(partItem);
+      setStatus(`${partItem.name}：已重新显示目标位置`, 'neutral');
+    } else {
+      state.hiddenTargetParts.add(partItem);
+      setStatus(`${partItem.name}：已关闭目标提示，再点一次可重新显示`, 'neutral');
+    }
+  } else {
+    state.hoveredPart = partItem;
   }
+  drawScene();
 }
 
 canvas.addEventListener('pointermove', event => {
@@ -1516,12 +1526,7 @@ canvas.addEventListener('pointerleave', () => {
 
 canvas.addEventListener('click', event => {
   const clicked = partAtPoint(canvasPoint(event));
-  if (clicked) {
-    showPartTarget(clicked, true);
-    return;
-  }
-  state.selectedPart = null;
-  drawScene();
+  if (clicked) showPartTarget(clicked, true);
 });
 
 function previewStrike(side) {
