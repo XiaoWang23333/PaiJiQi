@@ -12,6 +12,9 @@ const els = {
   intentText: document.querySelector('#intentText'),
   statusLine: document.querySelector('#statusLine'),
   statusText: document.querySelector('#statusLine p'),
+  phaseCard: document.querySelector('#phaseCard'),
+  phaseDirection: document.querySelector('#phaseDirection'),
+  handSection: document.querySelector('.hand-section'),
   hand: document.querySelector('#hand'),
   deckCount: document.querySelector('#deckCount'),
   hintText: document.querySelector('#hintText'),
@@ -184,9 +187,10 @@ function loadMachine(index) {
   });
   updatePartStates(false);
   drawHand();
+  updateInteractionPhase();
   updateUI();
   drawScene();
-  setStatus(index === 0 ? '先选一张掌法，再选择拍击方向' : `新的订单：${state.machine.name}，先观察内部结构`, 'neutral');
+  setStatus(index === 0 ? '第 1 步：先选一张掌法' : `第 1 步：为${state.machine.name}选择掌法`, 'neutral');
   updateSteps();
 }
 
@@ -238,19 +242,42 @@ function formatPower(card) {
   return '重';
 }
 
+function updateInteractionPhase() {
+  const choosingCard = !state.selectedCard;
+  els.statusLine.dataset.phase = choosingCard ? 'card' : 'direction';
+  els.phaseCard.classList.toggle('active', choosingCard);
+  els.phaseCard.classList.toggle('done', !choosingCard);
+  els.phaseDirection.classList.toggle('active', !choosingCard);
+  els.handSection.classList.toggle('awaiting-card', choosingCard);
+  els.sideButtons.forEach(button => {
+    button.classList.toggle('locked', choosingCard && !state.busy);
+    button.classList.toggle('ready', !choosingCard && !state.busy);
+    button.setAttribute('aria-disabled', String(choosingCard || state.busy));
+  });
+}
+
+function guideHandSelection() {
+  els.handSection.classList.remove('needs-attention');
+  void els.handSection.offsetWidth;
+  els.handSection.classList.add('needs-attention');
+  setStatus('先完成第 1 步：请从底部选择一张掌法', 'bad');
+  setTimeout(() => els.handSection.classList.remove('needs-attention'), 650);
+}
+
 function selectCard(card) {
   if (state.busy) return;
   state.selectedCard = card;
   state.previewSide = null;
   renderHand();
+  updateInteractionPhase();
   drawScene();
-  els.sideButtons.forEach(button => button.classList.add('ready'));
-  setStatus(`已选择「${card.name}」，悬停或轻触方向可预览落点`, 'neutral');
+  setStatus(`第 2 步：已选择「${card.name}」，点击一个方向立即拍击`, 'neutral');
 }
 
 async function strike(side) {
-  if (!state.selectedCard || state.busy) {
-    setStatus('需要先选择一张掌法', 'bad');
+  if (state.busy) return;
+  if (!state.selectedCard) {
+    guideHandSelection();
     return;
   }
 
@@ -258,9 +285,10 @@ async function strike(side) {
   state.totalSlaps += 1;
   state.guard = Boolean(state.selectedCard.guard);
   els.sideButtons.forEach(button => {
-    button.classList.remove('ready');
+    button.classList.remove('ready', 'locked');
     button.disabled = true;
   });
+  updateInteractionPhase();
   renderHand();
 
   const card = state.selectedCard;
@@ -314,6 +342,7 @@ async function strike(side) {
   state.busy = false;
   els.sideButtons.forEach(button => { button.disabled = false; });
   drawHand();
+  updateInteractionPhase();
   updateUI();
   drawScene();
   if (afterFixed > beforeFixed) {
@@ -1001,7 +1030,7 @@ function focusedPart() {
 function drawTargets() {
   const focused = focusedPart();
   const capturing = state.parts.filter(p => p.connection === 'capturing');
-  state.parts.filter(p => p.active || p.connection === 'capturing' || p === focused).forEach(drawSocket);
+  state.parts.forEach(drawSocket);
   capturing.forEach(drawTargetIndicator);
   if (focused && focused.connection !== 'capturing') drawTargetIndicator(focused);
 }
@@ -1063,11 +1092,14 @@ function drawSocket(p) {
   ctx.translate(p.tx, p.ty);
   const activeColor = '#6fe0ad';
   const capturing = p.connection === 'capturing';
-  const socketColor = capturing ? '#f6c445' : activeColor;
-  ctx.strokeStyle = p.active || capturing ? socketColor : 'rgba(150,169,166,.72)';
+  const focused = focusedPart() === p;
+  const passive = !p.active && !capturing && !focused;
+  const socketColor = capturing ? '#f6c445' : (focused ? p.color : activeColor);
+  ctx.globalAlpha = passive ? .28 : 1;
+  ctx.strokeStyle = p.active || capturing || focused ? socketColor : p.color;
   ctx.fillStyle = p.active ? 'rgba(73,203,145,.18)' : (capturing ? 'rgba(246,196,69,.2)' : 'rgba(11,18,20,.48)');
-  ctx.lineWidth = p.active || capturing ? 5 : 3;
-  if (p.active || capturing) {
+  ctx.lineWidth = p.active || capturing || focused ? 5 : 3;
+  if (p.active || capturing || focused) {
     ctx.shadowColor = socketColor;
     ctx.shadowBlur = 18;
   }
@@ -1496,21 +1528,29 @@ function previewStrike(side) {
   setStatus(`预计从${sideName(side)}拍击：绿色落点表示会进入接口捕获区`, 'neutral');
 }
 
+let lastDirectionPointerType = 'mouse';
+
 els.sideButtons.forEach(button => {
+  button.addEventListener('pointerdown', event => {
+    lastDirectionPointerType = event.pointerType || 'mouse';
+  });
   button.addEventListener('pointerenter', event => {
     if (event.pointerType === 'mouse') previewStrike(button.dataset.side);
   });
   button.addEventListener('click', () => {
     const side = button.dataset.side;
-    if (!state.selectedCard || state.busy) {
+    if (state.busy) return;
+    if (!state.selectedCard) {
+      guideHandSelection();
+      return;
+    }
+
+    const touchLike = lastDirectionPointerType !== 'mouse' || window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    if (touchLike || state.previewSide === side) {
       strike(side);
       return;
     }
-    if (state.previewSide !== side) {
-      previewStrike(side);
-      return;
-    }
-    strike(side);
+    previewStrike(side);
   });
 });
 document.querySelector('#startButton').addEventListener('click', () => {

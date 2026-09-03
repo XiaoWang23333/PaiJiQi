@@ -60,8 +60,12 @@
           <div id="impactFlash" class="impact-flash"></div>
         </div>
 
-        <div id="statusLine" class="status-line">
-          <span class="status-dot"></span>
+        <div id="statusLine" class="status-line" data-phase="card">
+          <div class="turn-flow" aria-label="本回合操作步骤">
+            <span id="phaseCard" class="turn-phase active"><b>1</b>选掌法</span>
+            <i>→</i>
+            <span id="phaseDirection" class="turn-phase"><b>2</b>选方向</span>
+          </div>
           <p>先选一张掌法，再选择拍击方向</p>
         </div>
       </section>
